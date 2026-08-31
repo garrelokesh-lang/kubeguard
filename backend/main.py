@@ -1,3 +1,4 @@
+from healing import heal_deployment
 from fastapi import FastAPI
 from kubernetes import client, config
 from security import scan_pod_security
@@ -141,3 +142,11 @@ def security_scan():
         "total_findings": len(findings),
         "findings": findings,
     }
+
+
+@app.post("/heal/{namespace}/{deployment_name}")
+def heal(namespace: str, deployment_name: str):
+     return heal_deployment(
+         deployment_name=deployment_name,
+         namespace=namespace,
+     )

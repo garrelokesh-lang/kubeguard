@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healing-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: healing-test
+  template:
+    metadata:
+      labels:
+        app: healing-test
+    spec:
+      containers:
+        - name: healing-test
+          image: nginx:latest
