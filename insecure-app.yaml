@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: insecure-app
+  namespace: default
+spec:
+  containers:
+    - name: insecure-app
+      image: nginx:latest
+      securityContext:
+        privileged: true
+        runAsUser: 0
