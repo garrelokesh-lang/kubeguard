@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>KubeGuard Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f7fb;
+            color: #1f2937;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 22px 40px;
+        }
+
+        header h1 {
+            font-size: 28px;
+        }
+
+        header p {
+            margin-top: 5px;
+            color: #9ca3af;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            background: #22c55e;
+            border-radius: 50%;
+        }
+
+        .dot.offline {
+            background: #dc2626;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h3 {
+            color: #6b7280;
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+
+        .value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .healthy {
+            color: #16a34a;
+            font-weight: bold;
+        }
+
+        .unhealthy {
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        .warning {
+            color: #d97706;
+            font-weight: bold;
+        }
+
+        .health {
+            margin-top: 25px;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 18px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        .health-fill {
+            height: 100%;
+            width: 0%;
+            background: #22c55e;
+            transition: width 0.4s ease;
+        }
+
+        .section {
+            margin-top: 30px;
+        }
+
+        .section h2 {
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            padding: 14px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: #111827;
+            color: white;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 11px 20px;
+            border: none;
+            border-radius: 7px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .refresh {
+            background: #2563eb;
+        }
+
+        .refresh:hover {
+            background: #1d4ed8;
+        }
+
+        .heal-button {
+            background: #16a34a;
+        }
+
+        .heal-button:hover {
+            background: #15803d;
+        }
+
+        .heal-button:disabled,
+        .refresh:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .last-updated {
+            margin-top: 12px;
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .message {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .message.success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+
+        .message.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .loading {
+            color: #6b7280;
+            text-align: center;
+        }
+
+        @media (max-width: 800px) {
+            .cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 500px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                padding: 20px;
+            }
+
+            .container {
+                padding: 0 15px;
+            }
+
+            table {
+                font-size: 13px;
+            }
+
+            th,
+            td {
+                padding: 9px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>🛡️ KubeGuard</h1>
+    <p>Kubernetes Security, Monitoring and Self-Healing Platform</p>
+</header>
+
+<div class="container">
+
+    <!-- System Status -->
+
+    <div class="status">
+        <div class="dot" id="status-dot"></div>
+
+        <strong id="system-status">
+            Connecting to KubeGuard...
+        </strong>
+    </div>
+
+
+    <!-- Dashboard Cards -->
+
+    <div class="cards">
+
+        <div class="card">
+            <h3>Total Pods</h3>
+
+            <div
+                class="value"
+                id="total-pods">
+                -
+            </div>
+        </div>
+
+
+        <div class="card">
+            <h3>Healthy Pods</h3>
+
+            <div
+                class="value healthy"
+                id="healthy-pods">
+                -
+            </div>
+        </div>
+
+
+        <div class="card">
+            <h3>Unhealthy Pods</h3>
+
+            <div
+                class="value unhealthy"
+                id="unhealthy-pods">
+                -
+            </div>
+        </div>
+
+
+        <div class="card">
+            <h3>Security Findings</h3>
+
+            <div
+                class="value"
+                id="security-findings">
+                -
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- Cluster Health -->
+
+    <div class="card health">
+
+        <h3>Cluster Health</h3>
+
+        <div class="value">
+            <span id="health-percentage">0</span>%
+        </div>
+
+        <div class="health-bar">
+
+            <div
+                class="health-fill"
+                id="health-fill">
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Pod Status -->
+
+    <div class="section">
+
+        <h2>Pod Status</h2>
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Pod</th>
+                    <th>Namespace</th>
+                    <th>Status</th>
+                    <th>Restarts</th>
+                    <th>Severity</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody id="pod-table">
+
+                <tr>
+                    <td
+                        colspan="5"
+                        class="loading">
+
+                        Loading Kubernetes pods...
+
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- Action Buttons -->
+
+    <div class="actions">
+
+        <button
+            class="refresh"
+            id="refresh-button"
+            onclick="loadDashboard()">
+
+            🔄 Refresh Now
+
+        </button>
+
+
+        <button
+            class="heal-button"
+            id="heal-button"
+            onclick="autoHeal()">
+
+            🛠️ Auto Heal
+
+        </button>
+
+    </div>
+
+
+    <!-- Result Message -->
+
+    <div
+        id="message"
+        class="message">
+    </div>
+
+
+    <!-- Last Updated -->
+
+    <div
+        class="last-updated"
+        id="last-updated">
+
+        Last updated: -
+
+    </div>
+
+</div>
+
+
+<script>
+
+/*
+=========================================================
+KubeGuard Dashboard
+=========================================================
+
+Features:
+
+- Kubernetes pod monitoring
+- Cluster health
+- Security findings
+- Pod severity
+- Auto healing
+- Manual refresh
+- Automatic refresh every 30 seconds
+
+=========================================================
+*/
+
+
+/* =====================================================
+   Show Message
+===================================================== */
+
+function showMessage(text, type) {
+
+    const message =
+        document.getElementById("message");
+
+    message.textContent = text;
+
+    message.className =
+        "message " + type;
+}
+
+
+/* =====================================================
+   Load Dashboard
+===================================================== */
+
+async function loadDashboard() {
+
+    const refreshButton =
+        document.getElementById("refresh-button");
+
+    refreshButton.disabled = true;
+
+
+    try {
+
+        /* -----------------------------------------------
+           Get Cluster Health
+        ------------------------------------------------ */
+
+        const healthResponse =
+            await fetch("/cluster/health");
+
+
+        if (!healthResponse.ok) {
+
+            throw new Error(
+                "Cluster health request failed"
+            );
+
+        }
+
+
+        const health =
+            await healthResponse.json();
+
+
+        /* -----------------------------------------------
+           Get Security Findings
+        ------------------------------------------------ */
+
+        const securityResponse =
+            await fetch("/security/scan");
+
+
+        if (!securityResponse.ok) {
+
+            throw new Error(
+                "Security scan request failed"
+            );
+
+        }
+
+
+        const security =
+            await securityResponse.json();
+
+
+        /* -----------------------------------------------
+           Get Pods
+        ------------------------------------------------ */
+
+        const podsResponse =
+            await fetch("/cluster/pods");
+
+
+        if (!podsResponse.ok) {
+
+            throw new Error(
+                "Pod request failed"
+            );
+
+        }
+
+
+        const pods =
+            await podsResponse.json();
+
+
+        /* -----------------------------------------------
+           Calculate Health Percentage
+        ------------------------------------------------ */
+
+        const totalPods =
+            health.total_pods ?? 0;
+
+        const healthyPods =
+            health.healthy ?? 0;
+
+        let healthPercentage = 0;
+
+
+        if (totalPods > 0) {
+
+            healthPercentage =
+                Math.round(
+                    (healthyPods / totalPods) * 100
+                );
+
+        }
+
+
+        /* -----------------------------------------------
+           System Status
+        ------------------------------------------------ */
+
+        document.getElementById(
+            "system-status"
+        ).textContent =
+            "KubeGuard Online";
+
+
+        document.getElementById(
+            "status-dot"
+        ).classList.remove("offline");
+
+
+        /* -----------------------------------------------
+           Dashboard Cards
+        ------------------------------------------------ */
+
+        document.getElementById(
+            "total-pods"
+        ).textContent =
+            totalPods;
+
+
+        document.getElementById(
+            "healthy-pods"
+        ).textContent =
+            healthyPods;
+
+
+        document.getElementById(
+            "unhealthy-pods"
+        ).textContent =
+            health.unhealthy ?? 0;
+
+
+        document.getElementById(
+            "security-findings"
+        ).textContent =
+            security.total_findings ?? 0;
+
+
+        /* -----------------------------------------------
+           Cluster Health
+        ------------------------------------------------ */
+
+        document.getElementById(
+            "health-percentage"
+        ).textContent =
+            healthPercentage;
+
+
+        document.getElementById(
+            "health-fill"
+        ).style.width =
+            `${healthPercentage}%`;
+
+
+        /* -----------------------------------------------
+           Pod Table
+        ------------------------------------------------ */
+
+        const table =
+            document.getElementById("pod-table");
+
+        table.innerHTML = "";
+
+
+        if (
+            !pods.pods ||
+            pods.pods.length === 0
+        ) {
+
+            table.innerHTML = `
+                <tr>
+                    <td colspan="5">
+                        No pods found
+                    </td>
+                </tr>
+            `;
+
+        } else {
+
+            pods.pods.forEach((pod) => {
+
+                const row =
+                    document.createElement("tr");
+
+
+                const status =
+                    pod.status || "Unknown";
+
+
+                const namespace =
+                    pod.namespace || "default";
+
+
+                const restartCount =
+                    pod.restarts ?? 0;
+
+
+                /* ---------------------------------------
+                   Determine Severity
+                --------------------------------------- */
+
+                let severity =
+                    pod.severity || "Info";
+
+
+                if (!pod.severity) {
+
+                    if (
+                        status === "Failed"
+                    ) {
+
+                        severity = "CRITICAL";
+
+                    } else if (
+                        status === "Pending"
+                    ) {
+
+                        severity = "MEDIUM";
+
+                    } else if (
+                        restartCount >= 5
+                    ) {
+
+                        severity = "HIGH";
+
+                    } else if (
+                        restartCount >= 3
+                    ) {
+
+                        severity = "MEDIUM";
+
+                    } else {
+
+                        severity = "LOW";
+
+                    }
+
+                }
+
+
+                /* ---------------------------------------
+                   Status Class
+                --------------------------------------- */
+
+                let statusClass =
+                    "warning";
+
+
+                if (
+                    status === "Running"
+                ) {
+
+                    statusClass =
+                        "healthy";
+
+                } else if (
+                    status !== "Completed"
+                ) {
+
+                    statusClass =
+                        "unhealthy";
+
+                }
+
+
+                /* ---------------------------------------
+                   Severity Class
+                --------------------------------------- */
+
+                let severityClass =
+                    "warning";
+
+
+                if (
+                    severity === "LOW" ||
+                    severity === "Info"
+                ) {
+
+                    severityClass =
+                        "healthy";
+
+                } else if (
+                    severity === "HIGH" ||
+                    severity === "CRITICAL"
+                ) {
+
+                    severityClass =
+                        "unhealthy";
+
+                }
+
+
+                /* ---------------------------------------
+                   Create Table Row
+                --------------------------------------- */
+
+                row.innerHTML = `
+
+                    <td>
+                        ${escapeHtml(
+                            pod.name || "Unknown"
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            namespace
+                        )}
+                    </td>
+
+                    <td class="${statusClass}">
+                        ${escapeHtml(
+                            status
+                        )}
+                    </td>
+
+                    <td>
+                        ${restartCount}
+                    </td>
+
+                    <td class="${severityClass}">
+                        ${escapeHtml(
+                            severity
+                        )}
+                    </td>
+
+                `;
+
+
+                table.appendChild(row);
+
+            });
+
+        }
+
+
+        /* -----------------------------------------------
+           Last Updated
+        ------------------------------------------------ */
+
+        document.getElementById(
+            "last-updated"
+        ).textContent =
+            "Last updated: " +
+            new Date().toLocaleTimeString();
+
+
+    } catch (error) {
+
+        console.error(
+            "Dashboard error:",
+            error
+        );
+
+
+        document.getElementById(
+            "system-status"
+        ).textContent =
+            "KubeGuard Offline";
+
+
+        document.getElementById(
+            "status-dot"
+        ).classList.add("offline");
+
+
+        document.getElementById(
+            "pod-table"
+        ).innerHTML = `
+
+            <tr>
+                <td
+                    colspan="5"
+                    class="unhealthy">
+
+                    Unable to load Kubernetes data
+
+                </td>
+            </tr>
+
+        `;
+
+
+        showMessage(
+            "Unable to connect to KubeGuard backend.",
+            "error"
+        );
+
+    } finally {
+
+        refreshButton.disabled = false;
+
+    }
+
+}
+
+
+/* =====================================================
+   AUTO HEAL
+===================================================== */
+
+async function autoHeal() {
+
+    const healButton =
+        document.getElementById("heal-button");
+
+
+    healButton.disabled = true;
+
+    healButton.textContent =
+        "⏳ Healing...";
+
+
+    try {
+
+        /* -----------------------------------------------
+           Call FastAPI Auto Heal Endpoint
+        ------------------------------------------------ */
+
+        const response =
+            await fetch(
+                "/heal/auto",
+                {
+                    method: "POST"
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Auto heal request failed"
+            );
+
+        }
+
+
+        /* -----------------------------------------------
+           Read Response
+        ------------------------------------------------ */
+
+        const result =
+            await response.json();
+
+
+        console.log(
+            "Auto Heal response:",
+            result
+        );
+
+
+        /*
+        IMPORTANT FIX:
+
+        Use ?? 0 so undefined values never
+        appear in the dashboard message.
+        */
+
+        const checked =
+            result.checked_deployments ?? 0;
+
+
+        const healed =
+            result.healed ?? 0;
+
+
+        /* -----------------------------------------------
+           Display Healing Result
+        ------------------------------------------------ */
+
+        if (healed > 0) {
+
+            showMessage(
+                `Auto Heal completed successfully. ` +
+                `Checked ${checked} deployment(s) ` +
+                `and healed ${healed}.`,
+                "success"
+            );
+
+        } else {
+
+            showMessage(
+                `Auto Heal completed. ` +
+                `Checked ${checked} deployment(s). ` +
+                `No broken deployments required healing.`,
+                "success"
+            );
+
+        }
+
+
+        /* -----------------------------------------------
+           Refresh Dashboard After Healing
+        ------------------------------------------------ */
+
+        await loadDashboard();
+
+    } catch (error) {
+
+        console.error(
+            "Auto Heal error:",
+            error
+        );
+
+
+        showMessage(
+            "Auto Heal failed. Check the backend terminal for details.",
+            "error"
+        );
+
+    } finally {
+
+        healButton.disabled = false;
+
+        healButton.textContent =
+            "🛠️ Auto Heal";
+
+    }
+
+}
+
+
+/* =====================================================
+   Escape HTML
+===================================================== */
+
+function escapeHtml(value) {
+
+    const div =
+        document.createElement("div");
+
+    div.textContent =
+        value;
+
+    return div.innerHTML;
+
+}
+
+
+/* =====================================================
+   INITIAL LOAD
+===================================================== */
+
+loadDashboard();
+
+
+/* =====================================================
+   AUTOMATIC REFRESH
+
+   Refresh dashboard data every 30 seconds.
+
+   The page itself is NOT reloaded.
+===================================================== */
+
+setInterval(
+    loadDashboard,
+    30000
+);
+
+</script>
+
+</body>
+</html>
